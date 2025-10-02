@@ -87,6 +87,45 @@ def draw_angle_display(frame: np.ndarray, pitch: float, yaw: float):
 
     return frame
 
+def draw_gaze_direction(frame: np.ndarray, pitch: float, yaw: float, confidence: float = None):
+    """Draw gaze direction text and confidence below FPS counter."""
+    # Convert from radians to degrees
+    pitch_deg = pitch * 180 / np.pi
+    yaw_deg = yaw * 180 / np.pi
+
+    # Determine gaze direction with thresholds
+    horizontal = ""
+    vertical = ""
+
+    if abs(yaw_deg) > 15:  # Threshold for vertical movement
+        vertical = "UP" if pitch_deg > 0 else "DOWN"
+
+    if abs(pitch_deg) > 15:  # Threshold for horizontal movement
+        horizontal = "RIGHT" if yaw_deg > 0 else "LEFT"
+
+    # Combine directions
+    if horizontal and vertical:
+        direction = f"{vertical}-{horizontal}"
+    elif horizontal:
+        direction = horizontal
+    elif vertical:
+        direction = vertical
+    else:
+        direction = "CENTER"
+
+    # Draw direction text below FPS (assuming FPS is at y=20)
+    cv2.putText(frame, f'Gaze: {direction}', (10, 45),
+                cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, (0, 255, 255), 2, cv2.LINE_AA)
+
+    # Draw confidence score if available
+    if confidence is not None:
+        confidence_percent = confidence * 100
+        color = (0, 255, 0) if confidence > 0.7 else (0, 255, 255) if confidence > 0.5 else (0, 0, 255)
+        cv2.putText(frame, f'Confidence: {confidence_percent:.1f}%', (10, 70),
+                    cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, color, 2, cv2.LINE_AA)
+
+    return frame
+
 def log_gaze_data(pitch: float, yaw: float):
     """Log gaze data for plotting."""
     global gaze_data, start_time
@@ -177,11 +216,13 @@ def render(frame: np.ndarray, results: GazeResultContainer):
         bbox = results.bboxes[i]
         pitch = results.pitch[i]
         yaw = results.yaw[i]
+        confidence = results.scores[i] if len(results.scores) > i else None
 
         # Log gaze data for the first detected face
         if i == 0:
             log_gaze_data(pitch, yaw)
             frame = draw_angle_display(frame, pitch, yaw)
+            frame = draw_gaze_direction(frame, pitch, yaw, confidence)
 
         # Extract safe min and max of x,y
         x_min=int(bbox[0])
