@@ -9,16 +9,18 @@ from face_detection import RetinaFace
 
 from .utils import prep_input_numpy, getArch
 from .results import GazeResultContainer
+from .face_pose import FacePoseDetector
 
 
 class GazePipeline:
     def __init__(
-        self, 
-        weights: pathlib.Path, 
+        self,
+        weights: pathlib.Path,
         arch: str,
-        device: str = 'cpu', 
+        device: str = 'cpu',
         include_detector:bool = True,
-        confidence_threshold:float = 0.5
+        confidence_threshold:float = 0.5,
+        include_face_pose:bool = True
         ):
 
         # Save input parameters
@@ -26,6 +28,7 @@ class GazePipeline:
         self.include_detector = include_detector
         self.device = device
         self.confidence_threshold = confidence_threshold
+        self.include_face_pose = include_face_pose
 
         # Create L2CS model
         self.model = getArch(arch, 90)
@@ -44,6 +47,11 @@ class GazePipeline:
             self.softmax = nn.Softmax(dim=1)
             self.idx_tensor = [idx for idx in range(90)]
             self.idx_tensor = torch.FloatTensor(self.idx_tensor).to(self.device)
+
+        # Create face pose detector if requested
+        if self.include_face_pose:
+            device_str = 'cpu' if device.type == 'cpu' else f'cuda:{device.index}'
+            self.face_pose_detector = FacePoseDetector(device=device_str)
 
     def step(self, frame: np.ndarray) -> GazeResultContainer:
 
@@ -99,13 +107,33 @@ class GazePipeline:
         else:
             pitch, yaw = self.predict_gaze(frame)
 
+        # Face pose detection
+        face_poses = []
+        pose_angles_R = []
+        pose_angles_L = []
+        pose_landmarks = []
+
+        if self.include_face_pose and face_imgs:
+            try:
+                pose_landmarks_detected, angles_R, angles_L, poses = self.face_pose_detector.detect_face_pose(frame)
+                pose_landmarks = pose_landmarks_detected
+                pose_angles_R = angles_R
+                pose_angles_L = angles_L
+                face_poses = poses
+            except Exception as e:
+                print(f"Face pose detection failed: {e}")
+
         # Save data
         results = GazeResultContainer(
             pitch=pitch,
             yaw=yaw,
             bboxes=np.stack(bboxes) if bboxes else np.empty((0, 4)),
             landmarks=np.stack(landmarks) if landmarks else np.empty((0, 10)),
-            scores=np.stack(scores) if scores else np.empty((0,))
+            scores=np.stack(scores) if scores else np.empty((0,)),
+            face_poses=face_poses,
+            pose_angles_R=pose_angles_R,
+            pose_angles_L=pose_angles_L,
+            pose_landmarks=pose_landmarks
         )
 
         return results

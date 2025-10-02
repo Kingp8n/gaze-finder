@@ -63,3 +63,5 @@ Input (448×448×3) → ResNet Backbone → Global Average Pool → FC Layers
 - [Gaze360 Dataset](https://gaze360.csail.mit.edu/)
 - [Gaze360  Dataset (Huggingface)](https://huggingface.co/datasets/Morning5/Gaze360)
 - [Face Detection](https://github.com/elliottzheng/face-detection)
+- [Face Orientation](https://nawafalageel.medium.com/detect-face-poses-f4910dea4a6a)
+- [Face Orientation MTCNN](https://github.com/ipazc/mtcnn)

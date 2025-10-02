@@ -64,14 +64,19 @@ python detect.py --snapshot models/Gaze_Tracker.pkl --cam 0 --output-json --webs
 - Middle panel: X/Y vector components (horizontal/vertical gaze direction)
 - Bottom panel: Z component (depth/forward-back direction)
 
-![Gaze Browswe Client](images/gaze_browswe_client.png)
-- Broswer client with websockt and json streaming for real-time output
-- gaze direction label, pitch/yaw angles, 3D gaze vector, and temporal smoothing. The client displays live gaze events, confidence scores, and overlay graphics for debugging and visualization.
+![Gaze Browser Client](images/gaze_browswe_client.png)
+*Browser client with WebSocket and JSON streaming for real-time output - gaze direction label, pitch/yaw angles, 3D gaze vector, and temporal smoothing. The client displays live gaze events, confidence scores, and overlay graphics for debugging and visualization.*
+
+## Face Pose Detection
+![Face Pose Detection](images/facepose.png)
+![Example Face Pose Detection](images/output_facepose_detection.jpg)
+*Integrated MTCNN-based face pose detection showing Left Profile classification with landmark triangulation and angle measurements (Left: 107°, Right: 37°). The system combines gaze estimation with head orientation analysis for comprehensive face tracking.*
 
 ## Key Features
 - **CPU/GPU Support**: Automatic device detection with CPU fallback
 - **Multiple Architectures**: ResNet18/34/50/101/152 support
 - **Face Detection**: Integrated RetinaFace detector
+- **Face Pose Detection**: MTCNN-based head orientation (Frontal/Left/Right Profile)
 - **Cross-Platform**: Works on Ubuntu, macOS, Windows
 - **Dual Output Modes**: Debug overlay + programmatic streams
 - **Real-time Streaming**: NDJSON console output + WebSocket server
@@ -85,4 +90,6 @@ python detect.py --snapshot models/Gaze_Tracker.pkl --cam 0 --output-json --webs
 ## Performance
 - **Input Resolution**: 448×448 pixels
 - **Angular Range**: ±42° (MPII), ±180° (Gaze360)
-- **Inference**: Real-time capable on modern CPUs
+- **Face Pose**: Frontal, Left Profile, Right Profile classification
+- **Inference**: Real-time capable on modern CPUs (~15-30 FPS)
+- **Latency**: <100ms end-to-end processing

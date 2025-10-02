@@ -4,6 +4,7 @@ from .model import GazeTracker
 from .pipeline import GazePipeline
 from .datasets import Gaze360, Mpiigaze
 from .websocket_server import GazeWebSocketServer
+from .face_pose import FacePoseDetector
 
 __all__ = [
     'GazeTracker',
@@ -18,5 +19,6 @@ __all__ = [
     'gazeto3d',
     'angular',
     'getArch',
-    'GazeWebSocketServer'
+    'GazeWebSocketServer',
+    'FacePoseDetector'
 ]
