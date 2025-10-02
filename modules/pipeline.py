@@ -10,6 +10,8 @@ from face_detection import RetinaFace
 from .utils import prep_input_numpy, getArch
 from .results import GazeResultContainer
 from .face_pose import FacePoseDetector
+from .smoothing import TemporalSmoother
+from .calibration import FivePointCalibration
 
 
 class GazePipeline:
@@ -20,7 +22,11 @@ class GazePipeline:
         device: str = 'cpu',
         include_detector:bool = True,
         confidence_threshold:float = 0.5,
-        include_face_pose:bool = True
+        include_face_pose:bool = True,
+        enable_smoothing:bool = False,
+        smoothing_type:str = 'moving_average',
+        smoothing_buffer_size:int = 5,
+        smoothing_alpha:float = 0.3
         ):
 
         # Save input parameters
@@ -29,6 +35,19 @@ class GazePipeline:
         self.device = device
         self.confidence_threshold = confidence_threshold
         self.include_face_pose = include_face_pose
+        self.enable_smoothing = enable_smoothing
+
+        # Initialize temporal smoother if enabled
+        self.smoother = None
+        if enable_smoothing:
+            self.smoother = TemporalSmoother(
+                buffer_size=smoothing_buffer_size,
+                alpha=smoothing_alpha,
+                smoothing_type=smoothing_type
+            )
+
+        # Initialize calibration system
+        self.calibration = FivePointCalibration()
 
         # Create L2CS model
         self.model = getArch(arch, 90)
@@ -95,6 +114,28 @@ class GazePipeline:
                 # Predict gaze
                 if face_imgs:
                     pitch, yaw = self.predict_gaze(np.stack(face_imgs))
+
+                    # Apply calibration correction if available
+                    if pitch.size > 0 and yaw.size > 0:
+                        corrected_results = []
+                        for i in range(len(pitch)):
+                            corrected_pitch, corrected_yaw = self.calibration.apply_correction(pitch[i], yaw[i])
+                            corrected_results.append((corrected_pitch, corrected_yaw))
+
+                        if corrected_results:
+                            pitch = np.array([r[0] for r in corrected_results])
+                            yaw = np.array([r[1] for r in corrected_results])
+
+                    # Apply temporal smoothing if enabled
+                    if self.smoother and pitch.size > 0 and yaw.size > 0:
+                        smoothed_results = []
+                        for i in range(len(pitch)):
+                            smoothed_pitch, smoothed_yaw = self.smoother.smooth(pitch[i], yaw[i])
+                            smoothed_results.append((smoothed_pitch, smoothed_yaw))
+
+                        if smoothed_results:
+                            pitch = np.array([r[0] for r in smoothed_results])
+                            yaw = np.array([r[1] for r in smoothed_results])
                 else:
                     pitch = np.empty((0,1))
                     yaw = np.empty((0,1))
@@ -106,6 +147,18 @@ class GazePipeline:
 
         else:
             pitch, yaw = self.predict_gaze(frame)
+
+            # Apply calibration correction if available
+            if pitch.size > 0 and yaw.size > 0:
+                corrected_pitch, corrected_yaw = self.calibration.apply_correction(pitch[0], yaw[0])
+                pitch = np.array([corrected_pitch])
+                yaw = np.array([corrected_yaw])
+
+            # Apply temporal smoothing if enabled
+            if self.smoother and pitch.size > 0 and yaw.size > 0:
+                smoothed_pitch, smoothed_yaw = self.smoother.smooth(pitch[0], yaw[0])
+                pitch = np.array([smoothed_pitch])
+                yaw = np.array([smoothed_yaw])
 
         # Face pose detection
         face_poses = []

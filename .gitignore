@@ -109,3 +109,4 @@ MPIIFaceGaze/
 MPIIGaze/
 datasets/
 models/
+calibration.json
