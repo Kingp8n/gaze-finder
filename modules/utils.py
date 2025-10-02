@@ -29,8 +29,16 @@ transformations = transforms.Compose([
 def atoi(text):
     return int(text) if text.isdigit() else text
 
+def natural_keys(text):
+    '''
+    alist.sort(key=natural_keys) sorts in human order
+    http://nedbatchelder.com/blog/200712/human_sorting.html
+    (See Toothy's implementation in the comments)
+    '''
+    return [ atoi(c) for c in re.split(r'(\d+)', text) ]
+
 def prep_input_numpy(img:np.ndarray, device:str):
-    """Preparing a Numpy Array as input to GazeTracker-Net."""
+    """Preparing a Numpy Array as input to GazeTracker."""
 
     if len(img.shape) == 4:
         imgs = []
@@ -46,6 +54,17 @@ def prep_input_numpy(img:np.ndarray, device:str):
         img = img.unsqueeze(0)
 
     return img
+
+def gazeto3d(gaze):
+    gaze_gt = np.zeros([3])
+    gaze_gt[0] = -np.cos(gaze[1]) * np.sin(gaze[0])
+    gaze_gt[1] = -np.sin(gaze[1])
+    gaze_gt[2] = -np.cos(gaze[1]) * np.cos(gaze[0])
+    return gaze_gt
+
+def angular(gaze, label):
+    total = np.sum(gaze * label)
+    return np.arccos(min(total/(np.linalg.norm(gaze)* np.linalg.norm(label)), 0.9999999))*180/np.pi
 
 def select_device(device='', batch_size=None):
     # device = 'cpu' or '0' or '0,1,2,3'
@@ -108,4 +127,19 @@ def git_describe(path=Path(__file__).parent):  # path must be a directory
     except subprocess.CalledProcessError as e:
         return ''  # not a git repository
         
-
+def getArch(arch,bins):
+    # Base network structure
+    if arch == 'ResNet18':
+        model = GazeTracker( torchvision.models.resnet.BasicBlock,[2, 2,  2, 2], bins)
+    elif arch == 'ResNet34':
+        model = GazeTracker( torchvision.models.resnet.BasicBlock,[3, 4,  6, 3], bins)
+    elif arch == 'ResNet101':
+        model = GazeTracker( torchvision.models.resnet.Bottleneck,[3, 4, 23, 3], bins)
+    elif arch == 'ResNet152':
+        model = GazeTracker( torchvision.models.resnet.Bottleneck,[3, 8, 36, 3], bins)
+    else:
+        if arch != 'ResNet50':
+            print('Invalid value for architecture is passed! '
+                'The default value of ResNet50 will be used instead!')
+        model = GazeTracker( torchvision.models.resnet.Bottleneck, [3, 4, 6,  3], bins)
+    return model
