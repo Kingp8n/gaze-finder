@@ -51,8 +51,14 @@ python detect.py --snapshot models/Gaze_Tracker.pkl --cam 0 --output-json
 # With WebSocket server (open gaze_client.html in browser)
 python detect.py --snapshot models/Gaze_Tracker.pkl --cam 0 --websocket 8765
 
-# All outputs combined
-python detect.py --snapshot models/Gaze_Tracker.pkl --cam 0 --output-json --websocket 8765
+# Five-point calibration for improved accuracy
+python detect.py --snapshot models/Gaze_Tracker.pkl --cam 0 --calibrate
+
+# Temporal smoothing for stable output
+python detect.py --snapshot models/Gaze_Tracker.pkl --cam 0 --smoothing --smoothing-type both
+
+# All features combined
+python detect.py --snapshot models/Gaze_Tracker.pkl --cam 0 --calibrate --smoothing --output-json --websocket 8765
 ```
 - download the trained model from here: [Google Drive](https://drive.google.com/file/d/1sR9gdm9MOB_uCAFiMMRyV5Q2u2I8-QMr/view?usp=sharing) and save in `models/` directory
 
@@ -77,6 +83,8 @@ python detect.py --snapshot models/Gaze_Tracker.pkl --cam 0 --output-json --webs
 - **Multiple Architectures**: ResNet18/34/50/101/152 support
 - **Face Detection**: Integrated RetinaFace detector
 - **Face Pose Detection**: MTCNN-based head orientation (Frontal/Left/Right Profile)
+- **Five-Point Calibration**: Personalized accuracy improvement via user calibration
+- **Temporal Smoothing**: Configurable smoothing (moving average, exponential, combined)
 - **Cross-Platform**: Works on Ubuntu, macOS, Windows
 - **Dual Output Modes**: Debug overlay + programmatic streams
 - **Real-time Streaming**: NDJSON console output + WebSocket server
@@ -87,9 +95,44 @@ python detect.py --snapshot models/Gaze_Tracker.pkl --cam 0 --output-json --webs
 - **MPIIFaceGaze**: 15-fold cross-validation, ±42° gaze range
 - **Gaze360**: Full 360° gaze coverage, larger scale
 
+## Advanced Features
+
+### Five-Point Calibration
+Improves gaze accuracy by learning user-specific correction matrices:
+
+1. **Setup**: Run with `--calibrate` flag to start calibration routine
+2. **Process**: Look at 5 screen points (center + 4 corners) for 3 seconds each
+3. **Collection**: System records ~30 samples per point (raw model output vs known target)
+4. **Correction**: Calculates linear transformation matrices using least squares regression
+5. **Persistence**: Saves calibration to `calibration.json` for future sessions
+
+**Mathematical Process**:
+```
+screen_x = a1*pitch + b1*yaw + c1
+screen_y = a2*pitch + b2*yaw + c2
+```
+
+The calibration compensates for individual differences in eye shape, head position, and systematic model biases.
+
+### Temporal Smoothing
+Reduces gaze jitter through configurable filtering:
+
+- **Moving Average**: Smooths over N recent samples (default: 5)
+- **Exponential**: Weighted smoothing with alpha parameter (default: 0.3)
+- **Combined**: Applies both filters sequentially
+
+**Options**:
+```bash
+--smoothing-type [moving_average|exponential|both]
+--smoothing-buffer-size 5  # Moving average window
+--smoothing-alpha 0.3      # Exponential smoothing factor
+```
+
 ## Performance
 - **Input Resolution**: 448×448 pixels
 - **Angular Range**: ±42° (MPII), ±180° (Gaze360)
 - **Face Pose**: Frontal, Left Profile, Right Profile classification
 - **Inference**: Real-time capable on modern CPUs (~15-30 FPS)
 - **Latency**: <100ms end-to-end processing
+- **Calibration**: ~30 seconds setup time, persistent across sessions
+- **Smoothing**: Real-time filtering with configurable parameters

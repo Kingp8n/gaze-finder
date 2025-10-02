@@ -73,6 +73,21 @@ def parse_args():
     parser.add_argument(
         '--websocket',dest='websocket',help='Enable WebSocket server on specified port',
         type=int, default=None)
+    parser.add_argument(
+        '--calibrate',dest='calibrate',help='Run five-point calibration before gaze detection',
+        action='store_true')
+    parser.add_argument(
+        '--smoothing',dest='smoothing',help='Enable temporal smoothing',
+        action='store_true')
+    parser.add_argument(
+        '--smoothing-type',dest='smoothing_type',help='Smoothing type: moving_average, exponential, or both',
+        default='moving_average', type=str)
+    parser.add_argument(
+        '--smoothing-buffer-size',dest='smoothing_buffer_size',help='Buffer size for moving average smoothing',
+        default=5, type=int)
+    parser.add_argument(
+        '--smoothing-alpha',dest='smoothing_alpha',help='Alpha parameter for exponential smoothing',
+        default=0.3, type=float)
 
     args = parser.parse_args()
     return args
@@ -93,8 +108,28 @@ if __name__ == '__main__':
     gaze_GazePipeline = GazePipeline(
         weights=CWD / 'models' / 'Gaze_Tracker.pkl',
         arch='ResNet50',
-        device = select_device(args.device, batch_size=1)
+        device = select_device(args.device, batch_size=1),
+        enable_smoothing=args.smoothing,
+        smoothing_type=args.smoothing_type,
+        smoothing_buffer_size=args.smoothing_buffer_size,
+        smoothing_alpha=args.smoothing_alpha
     )
+
+    # Run calibration if requested
+    if args.calibrate:
+        print("Starting calibration routine...")
+        success = gaze_GazePipeline.calibration.run_calibration(gaze_GazePipeline)
+        if success:
+            print("Calibration completed successfully!")
+        else:
+            print("Calibration failed or was cancelled.")
+
+        # Wait for user input before starting main detection loop
+        input("Press Enter to start gaze detection...")
+    else:
+        # Try to load existing calibration
+        if gaze_GazePipeline.calibration.load_calibration():
+            print("Loaded existing calibration from calibration.json")
     cap = cv2.VideoCapture(cam)
 
     # Check if the webcam is opened correctly
