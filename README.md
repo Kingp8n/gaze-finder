@@ -6,10 +6,15 @@ Build a lightweight, local-only gaze prototype for Cluely that uses a standard w
 
 This project implements a ResNet-based gaze estimation model that predicts 2D gaze direction from facial images. It supports both MPIIFaceGaze and Gaze360 datasets for training and evaluation.
 
+![Gaze Angles Plot](images/gazehub.png)
+
 ### Architecture
 - **Model**: GazeTracker (ResNet-based CNN)
 - **Input**: 448x448 RGB face images
 - **Output**: Pitch and yaw gaze angles (binned classification + continuous regression)
+  - **Pitch**: Vertical gaze angle (up/down, θ ∈ [-42°, +42°])
+  - **Yaw**: Horizontal gaze angle (left/right, φ ∈ [-42°, +42°])
+  - **Gaze Vector**: 3D direction = (-cos(θ)sin(φ), -sin(θ), -cos(θ)cos(φ))
 - **Datasets**: MPIIFaceGaze (leave-one-out), Gaze360 (train/test split)
 
 ## Quick Start
@@ -36,34 +41,11 @@ python test.py --dataset mpiigaze --snapshot output/snapshots/model.pkl
 ```
 
 ### Pipeline Usage
-```python
-from modules import GazePipeline
-import cv2
-
-# Initialize pipeline
-pipeline = GazePipeline(
-    weights='path/to/model.pkl',
-    arch='ResNet50',
-    device='cpu'
-)
-
-# Process frame
-frame = cv2.imread('image.jpg')
-results = pipeline.step(frame)
+```bash
+python detect.py --snapshot models/Gaze_Tracker.pkl --cam 0
 ```
-
-## Project Structure
-```
-├── modules/
-│   ├── model.py        # GazeTracker CNN architecture
-│   ├── datasets.py     # Data loaders for MPIIFaceGaze/Gaze360
-│   ├── pipeline.py     # Inference pipeline with face detection
-│   ├── utils.py        # Utility functions and device selection
-│   └── visualize.py    # Visualization and rendering tools
-├── train.py           # Training script
-├── test.py           # Evaluation script
-└── requirements.txt  # Dependencies
-```
+- download the trained model from here: [Google Drive](https://drive.google.com/file/d/1sR9gdm9MOB_uCAFiMMRyV5Q2u2I8-QMr/view?usp=sharing)
+![Gaze Angles Plot](images/gaze_angles_plot.png)
 
 ## Key Features
 - **CPU/GPU Support**: Automatic device detection with CPU fallback

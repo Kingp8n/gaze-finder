@@ -117,7 +117,7 @@ def save_gaze_plot():
     plt.legend()
 
     plt.tight_layout()
-    plt.savefig('gaze_angles_plot.png', dpi=300, bbox_inches='tight')
+    plt.savefig('images/gaze_angles_plot.png', dpi=300, bbox_inches='tight')
     plt.close()
     print(f"Gaze plot saved as 'gaze_angles_plot.png' with {len(gaze_data)} data points")
 
