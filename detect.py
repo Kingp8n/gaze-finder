@@ -42,7 +42,12 @@ def output_gaze_json(results, timestamp, fps):
                     "z": float(-np.cos(results.pitch[i]) * np.cos(results.yaw[i]))
                 }
             },
-            "confidence": float(results.scores[i]) if len(results.scores) > i else None
+            "confidence": float(results.scores[i]) if len(results.scores) > i else None,
+            "face_pose": {
+                "pose": results.face_poses[i] if results.face_poses and len(results.face_poses) > i else None,
+                "angle_left": float(results.pose_angles_L[i]) if results.pose_angles_L and len(results.pose_angles_L) > i else None,
+                "angle_right": float(results.pose_angles_R[i]) if results.pose_angles_R and len(results.pose_angles_R) > i else None
+            }
         }
         print(json.dumps(gaze_data), flush=True)
 
@@ -140,7 +145,12 @@ if __name__ == '__main__':
                             "z": float(-np.cos(results.pitch[0]) * np.cos(results.yaw[0]))
                         }
                     },
-                    "confidence": float(results.scores[0]) if len(results.scores) > 0 else None
+                    "confidence": float(results.scores[0]) if len(results.scores) > 0 else None,
+                    "face_pose": {
+                        "pose": results.face_poses[0] if results.face_poses and len(results.face_poses) > 0 else None,
+                        "angle_left": float(results.pose_angles_L[0]) if results.pose_angles_L and len(results.pose_angles_L) > 0 else None,
+                        "angle_right": float(results.pose_angles_R[0]) if results.pose_angles_R and len(results.pose_angles_R) > 0 else None
+                    }
                 }
                 websocket_server.broadcast_gaze_data(gaze_data)
 
