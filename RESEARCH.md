@@ -1,0 +1,4 @@
+- [Offset Calibration for Appearance-Based Gaze Estimation via Gaze Decomposition](https://ieeexplore.ieee.org/document/9093419)
+- [Github: vladmandic/human](https://github.com/vladmandic/human)
+- [MPIIFaceGaze dataset](https://www.mpi-inf.mpg.de/departments/computer-vision-and-machine-learning/research/gaze-based-human-computer-interaction/its-written-all-over-your-face-full-face-appearance-based-gaze-estimation)
+- [MPIIGaze dataset](https://www.mpi-inf.mpg.de/departments/computer-vision-and-machine-learning/research/gaze-based-human-computer-interaction/appearance-based-gaze-estimation-in-the-wild)
