@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gaze Tracker Client</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #1a1a1a;
+            color: #fff;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        .connected { background-color: #2d5a27; }
+        .disconnected { background-color: #5a2727; }
+        .gaze-data {
+            background-color: #2a2a2a;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            border-left: 4px solid #00ff88;
+        }
+        .gaze-vector {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin: 10px 0;
+        }
+        .vector-component {
+            background-color: #333;
+            padding: 10px;
+            border-radius: 5px;
+            text-align: center;
+        }
+        .fps-counter {
+            font-size: 1.2em;
+            color: #00ff88;
+        }
+        .confidence {
+            font-weight: bold;
+        }
+        .confidence.high { color: #00ff00; }
+        .confidence.medium { color: #ffff00; }
+        .confidence.low { color: #ff0000; }
+        .direction {
+            font-size: 1.5em;
+            color: #00ffff;
+            text-align: center;
+            margin: 15px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎯 Real-time Gaze Tracker</h1>
+
+    <div id="status" class="status disconnected">
+        Disconnected from WebSocket server
+    </div>
+
+    <div id="gaze-info" style="display: none;">
+        <div class="fps-counter">
+            FPS: <span id="fps">--</span>
+        </div>
+
+        <div class="direction" id="direction">CENTER</div>
+
+        <div class="gaze-data">
+            <h3>Gaze Angles</h3>
+            <p>Pitch: <span id="pitch">--</span>° | Yaw: <span id="yaw">--</span>°</p>
+
+            <h3>3D Gaze Vector</h3>
+            <div class="gaze-vector">
+                <div class="vector-component">
+                    <strong>X</strong><br>
+                    <span id="vector-x">--</span>
+                </div>
+                <div class="vector-component">
+                    <strong>Y</strong><br>
+                    <span id="vector-y">--</span>
+                </div>
+                <div class="vector-component">
+                    <strong>Z</strong><br>
+                    <span id="vector-z">--</span>
+                </div>
+            </div>
+
+            <p>Confidence: <span id="confidence" class="confidence">--</span>%</p>
+            <p>Face ID: <span id="face-id">--</span></p>
+            <p>Timestamp: <span id="timestamp">--</span></p>
+        </div>
+    </div>
+
+    <script>
+        const ws = new WebSocket('ws://localhost:8765');
+        const statusDiv = document.getElementById('status');
+        const gazeInfo = document.getElementById('gaze-info');
+
+        ws.onopen = function(event) {
+            statusDiv.textContent = 'Connected to WebSocket server';
+            statusDiv.className = 'status connected';
+            gazeInfo.style.display = 'block';
+        };
+
+        ws.onclose = function(event) {
+            statusDiv.textContent = 'Disconnected from WebSocket server';
+            statusDiv.className = 'status disconnected';
+            gazeInfo.style.display = 'none';
+        };
+
+        ws.onerror = function(error) {
+            statusDiv.textContent = 'WebSocket error occurred';
+            statusDiv.className = 'status disconnected';
+        };
+
+        ws.onmessage = function(event) {
+            const data = JSON.parse(event.data);
+
+            // Update FPS
+            document.getElementById('fps').textContent = data.fps.toFixed(1);
+
+            // Update angles
+            document.getElementById('pitch').textContent = data.gaze.pitch_deg.toFixed(1);
+            document.getElementById('yaw').textContent = data.gaze.yaw_deg.toFixed(1);
+
+            // Update 3D vector
+            document.getElementById('vector-x').textContent = data.gaze.vector.x.toFixed(3);
+            document.getElementById('vector-y').textContent = data.gaze.vector.y.toFixed(3);
+            document.getElementById('vector-z').textContent = data.gaze.vector.z.toFixed(3);
+
+            // Update confidence
+            const confidence = (data.confidence * 100).toFixed(1);
+            const confidenceElement = document.getElementById('confidence');
+            confidenceElement.textContent = confidence;
+
+            if (data.confidence > 0.7) {
+                confidenceElement.className = 'confidence high';
+            } else if (data.confidence > 0.5) {
+                confidenceElement.className = 'confidence medium';
+            } else {
+                confidenceElement.className = 'confidence low';
+            }
+
+            // Calculate direction
+            const pitch = data.gaze.pitch_deg;
+            const yaw = data.gaze.yaw_deg;
+            let direction = 'CENTER';
+
+            let horizontal = '';
+            let vertical = '';
+
+            if (Math.abs(yaw) > 15) {
+                horizontal = yaw > 0 ? 'LEFT' : 'RIGHT';
+            }
+
+            if (Math.abs(pitch) > 15) {
+                vertical = pitch > 0 ? 'DOWN' : 'UP';
+            }
+
+            if (horizontal && vertical) {
+                direction = vertical + '-' + horizontal;
+            } else if (horizontal) {
+                direction = horizontal;
+            } else if (vertical) {
+                direction = vertical;
+            }
+
+            document.getElementById('direction').textContent = direction;
+
+            // Update other info
+            document.getElementById('face-id').textContent = data.face_id;
+            document.getElementById('timestamp').textContent = new Date(data.timestamp * 1000).toLocaleTimeString();
+        };
+    </script>
+</body>
+</html>
