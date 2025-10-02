@@ -87,8 +87,8 @@ def draw_angle_display(frame: np.ndarray, pitch: float, yaw: float):
 
     return frame
 
-def draw_gaze_direction(frame: np.ndarray, pitch: float, yaw: float, confidence: float = None):
-    """Draw gaze direction text and confidence below FPS counter."""
+def draw_gaze_direction(frame: np.ndarray, pitch: float, yaw: float, confidence: float = None, face_pose: str = None):
+    """Draw gaze direction text, confidence, and face pose below FPS counter."""
     # Convert from radians to degrees
     pitch_deg = pitch * 180 / np.pi
     yaw_deg = yaw * 180 / np.pi
@@ -123,6 +123,12 @@ def draw_gaze_direction(frame: np.ndarray, pitch: float, yaw: float, confidence:
         color = (0, 255, 0) if confidence > 0.7 else (0, 255, 255) if confidence > 0.5 else (0, 0, 255)
         cv2.putText(frame, f'Confidence: {confidence_percent:.1f}%', (10, 70),
                     cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, color, 2, cv2.LINE_AA)
+
+    # Draw face pose if available
+    if face_pose is not None:
+        pose_color = (255, 255, 255) if face_pose == 'Frontal' else (255, 0, 0) if face_pose == 'Right Profile' else (0, 0, 255)
+        cv2.putText(frame, f'Pose: {face_pose}', (10, 95),
+                    cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, pose_color, 2, cv2.LINE_AA)
 
     return frame
 
@@ -222,7 +228,10 @@ def render(frame: np.ndarray, results: GazeResultContainer):
         if i == 0:
             log_gaze_data(pitch, yaw)
             frame = draw_angle_display(frame, pitch, yaw)
-            frame = draw_gaze_direction(frame, pitch, yaw, confidence)
+
+            # Get face pose for first face if available
+            face_pose = results.face_poses[i] if results.face_poses and len(results.face_poses) > i else None
+            frame = draw_gaze_direction(frame, pitch, yaw, confidence, face_pose)
 
         # Extract safe min and max of x,y
         x_min=int(bbox[0])
@@ -239,5 +248,17 @@ def render(frame: np.ndarray, results: GazeResultContainer):
         bbox_height = y_max - y_min
 
         draw_gaze(x_min,y_min,bbox_width, bbox_height,frame,(pitch,yaw),color=(0,0,255))
+
+    # Draw face pose overlays if available
+    if results.pose_landmarks and results.pose_angles_R and results.pose_angles_L and results.face_poses:
+        from .face_pose import FacePoseDetector
+        pose_detector = FacePoseDetector()
+        frame = pose_detector.draw_face_pose_overlay(
+            frame,
+            results.pose_landmarks,
+            results.pose_angles_R,
+            results.pose_angles_L,
+            results.face_poses
+        )
 
     return frame
