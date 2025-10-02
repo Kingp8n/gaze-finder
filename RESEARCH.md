@@ -2,3 +2,5 @@
 - [Github: vladmandic/human](https://github.com/vladmandic/human)
 - [MPIIFaceGaze dataset](https://www.mpi-inf.mpg.de/departments/computer-vision-and-machine-learning/research/gaze-based-human-computer-interaction/its-written-all-over-your-face-full-face-appearance-based-gaze-estimation)
 - [MPIIGaze dataset](https://www.mpi-inf.mpg.de/departments/computer-vision-and-machine-learning/research/gaze-based-human-computer-interaction/appearance-based-gaze-estimation-in-the-wild)
+- [MPIIGaze dataset (kaggle)](https://www.kaggle.com/datasets/dhruv413/mpiigaze)
+- [Data Processing](https://phi-ai.buaa.edu.cn/Gazehub/rectification/)

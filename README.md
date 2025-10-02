@@ -1,2 +1,17 @@
 ## Project Scope.
 Build a lightweight, local-only gaze prototype for Cluely that uses a standard webcam to infer eye/pupil position and head pose, classify gaze (left/right/up/down/center) and emit a continuous gaze vector at ~15-30 FPS. Ship a tiny library plus sample app with a swappable face/landmark detector, quick five-point calibration (optional), temporal smoothing and confidence scores, and two outputs: a debug overlay (face/eye ROI, ray, label) and a programmatic stream (console NDJSON and optional local WebSocket with a minimal JS client). Keep it privacy-first (no frame storage or network by default), configurable (FPS, resolution, model, smoothing), and replaceable (clean interfaces). Include a brief README (setup, architecture, calibration, limits), a simple demo clip or screenshots, and an example consumer (browser or Electron). Aim for CPU-only performance, <100 ms latency, and easy integration so anyone can run a demo and see live gaze events in minutes.
+
+## Setup
+- device: Ubuntu 22.04LTS
+- python3 -m venv venv 
+- source venv/bin/activate
+
+![alt text](images/gazehub.png)
+
+## Citations:
+@article{Cheng2021Survey,
+    title={Appearance-based Gaze Estimation With Deep Learning: A Review and Benchmark},
+    author={Yihua Cheng and Haofei Wang and Yiwei Bao and Feng Lu},
+    journal={arXiv preprint arXiv:2104.12668},
+    year={2021}
+}

@@ -106,3 +106,5 @@ Desktop.ini
 
 # Dataset and Model
 MPIIFaceGaze/
+MPIIGaze/
+datasets/
