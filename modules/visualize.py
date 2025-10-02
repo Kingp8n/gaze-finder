@@ -53,22 +53,37 @@ def draw_crosshair(frame: np.ndarray):
     return frame
 
 def draw_angle_display(frame: np.ndarray, pitch: float, yaw: float):
-    """Draw angle information in the top right corner."""
+    """Draw angle information and gaze vector in the top right corner."""
     h, w = frame.shape[:2]
 
     # Convert from radians to degrees
     pitch_deg = pitch * 180 / np.pi
     yaw_deg = yaw * 180 / np.pi
 
-    # Draw background rectangle for better visibility
-    cv2.rectangle(frame, (w - 200, 10), (w - 10, 80), (0, 0, 0), -1)
-    cv2.rectangle(frame, (w - 200, 10), (w - 10, 80), (255, 255, 255), 2)
+    # Calculate 3D gaze vector using spherical coordinates
+    gaze_x = -np.cos(pitch) * np.sin(yaw)
+    gaze_y = -np.sin(pitch)
+    gaze_z = -np.cos(pitch) * np.cos(yaw)
+
+    # Draw background rectangle for better visibility (expanded for vector)
+    cv2.rectangle(frame, (w - 220, 10), (w - 10, 130), (0, 0, 0), -1)
+    cv2.rectangle(frame, (w - 220, 10), (w - 10, 130), (255, 255, 255), 2)
 
     # Draw angle text
-    cv2.putText(frame, f'Pitch: {pitch_deg:.1f}°', (w - 190, 35),
-                cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
-    cv2.putText(frame, f'Yaw: {yaw_deg:.1f}°', (w - 190, 60),
-                cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
+    cv2.putText(frame, f'Pitch: {pitch_deg:.1f}°', (w - 210, 30),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
+    cv2.putText(frame, f'Yaw: {yaw_deg:.1f}°', (w - 210, 50),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
+
+    # Draw gaze vector
+    cv2.putText(frame, 'Gaze Vector:', (w - 210, 75),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 1)
+    cv2.putText(frame, f'X: {gaze_x:.2f}', (w - 210, 95),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255, 255, 255), 1)
+    cv2.putText(frame, f'Y: {gaze_y:.2f}', (w - 210, 110),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255, 255, 255), 1)
+    cv2.putText(frame, f'Z: {gaze_z:.2f}', (w - 210, 125),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255, 255, 255), 1)
 
     return frame
 
@@ -81,14 +96,22 @@ def log_gaze_data(pitch: float, yaw: float):
     pitch_deg = pitch * 180 / np.pi
     yaw_deg = yaw * 180 / np.pi
 
+    # Calculate 3D gaze vector
+    gaze_x = -np.cos(pitch) * np.sin(yaw)
+    gaze_y = -np.sin(pitch)
+    gaze_z = -np.cos(pitch) * np.cos(yaw)
+
     gaze_data.append({
         'time': current_time,
         'pitch': pitch_deg,
-        'yaw': yaw_deg
+        'yaw': yaw_deg,
+        'gaze_x': gaze_x,
+        'gaze_y': gaze_y,
+        'gaze_z': gaze_z
     })
 
 def save_gaze_plot():
-    """Save the gaze data plot."""
+    """Save the gaze data plot including angles and 3D vector components."""
     global gaze_data
 
     if not gaze_data:
@@ -97,29 +120,47 @@ def save_gaze_plot():
     times = [d['time'] for d in gaze_data]
     pitches = [d['pitch'] for d in gaze_data]
     yaws = [d['yaw'] for d in gaze_data]
+    gaze_x = [d['gaze_x'] for d in gaze_data]
+    gaze_y = [d['gaze_y'] for d in gaze_data]
+    gaze_z = [d['gaze_z'] for d in gaze_data]
 
-    plt.figure(figsize=(12, 8))
+    plt.figure(figsize=(15, 10))
 
-    plt.subplot(2, 1, 1)
-    plt.plot(times, pitches, 'b-', label='Pitch')
-    plt.ylabel('Pitch (degrees)')
+    # Gaze angles
+    plt.subplot(3, 1, 1)
+    plt.plot(times, pitches, 'b-', label='Pitch', linewidth=1.5)
+    plt.plot(times, yaws, 'r-', label='Yaw', linewidth=1.5)
+    plt.ylabel('Angle (degrees)')
     plt.ylim(-180, 180)
-    plt.grid(True)
+    plt.grid(True, alpha=0.3)
     plt.legend()
-    plt.title('Gaze Angles Over Time')
+    plt.title('Gaze Angles and 3D Vector Components Over Time')
 
-    plt.subplot(2, 1, 2)
-    plt.plot(times, yaws, 'r-', label='Yaw')
-    plt.ylabel('Yaw (degrees)')
+    # Gaze vector X and Y components
+    plt.subplot(3, 1, 2)
+    plt.plot(times, gaze_x, 'g-', label='X (left/right)', linewidth=1.5)
+    plt.plot(times, gaze_y, 'm-', label='Y (up/down)', linewidth=1.5)
+    plt.ylabel('Vector Component')
+    plt.ylim(-1.1, 1.1)
+    plt.grid(True, alpha=0.3)
+    plt.legend()
+    plt.title('Gaze Vector X,Y Components')
+
+    # Gaze vector Z component
+    plt.subplot(3, 1, 3)
+    plt.plot(times, gaze_z, 'c-', label='Z (forward/back)', linewidth=1.5)
+    plt.ylabel('Vector Component')
     plt.xlabel('Time (seconds)')
-    plt.ylim(-180, 180)
-    plt.grid(True)
+    plt.ylim(-1.1, 1.1)
+    plt.grid(True, alpha=0.3)
     plt.legend()
+    plt.title('Gaze Vector Z Component')
 
     plt.tight_layout()
-    plt.savefig('images/gaze_angles_plot.png', dpi=300, bbox_inches='tight')
+    plt.savefig('images/gaze_vector_plot.png', dpi=300, bbox_inches='tight')
     plt.close()
-    print(f"Gaze plot saved as 'gaze_angles_plot.png' with {len(gaze_data)} data points")
+    print(f"Gaze plot saved as 'gaze_vector_plot.png' with {len(gaze_data)} data points")
+    print("Plot includes: Pitch/Yaw angles and 3D gaze vector components (X,Y,Z)")
 
 def render(frame: np.ndarray, results: GazeResultContainer):
 

@@ -19,8 +19,8 @@ L2CS-Net uses a hybrid classification-regression approach:
 ### Model Architecture
 ```
 Input (448×448×3) → ResNet Backbone → Global Average Pool → FC Layers
-                                                         ├── Pitch Head (num_bins)
-                                                         └── Yaw Head (num_bins)
+                                                         |→ Pitch Head (num_bins)
+                                                         |→ Yaw Head (num_bins)
 ```
 
 ### Training Strategy
