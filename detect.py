@@ -2,18 +2,49 @@ import argparse
 import pathlib
 import cv2
 import time
+import json
+import sys
 
 import torch
 import torch.backends.cudnn as cudnn
+import numpy as np
 
 from PIL import Image
 from PIL import Image, ImageOps
 
 from face_detection import RetinaFace
 
-from modules import select_device, draw_gaze, getArch, GazePipeline, render, save_gaze_plot
+from modules import select_device, draw_gaze, getArch, GazePipeline, render, save_gaze_plot, GazeWebSocketServer
 
 CWD = pathlib.Path.cwd()
+
+def output_gaze_json(results, timestamp, fps):
+    """Output gaze data as NDJSON to console."""
+    for i in range(len(results.pitch)):
+        gaze_data = {
+            "timestamp": timestamp,
+            "fps": fps,
+            "face_id": i,
+            "bbox": {
+                "x": float(results.bboxes[i][0]),
+                "y": float(results.bboxes[i][1]),
+                "width": float(results.bboxes[i][2] - results.bboxes[i][0]),
+                "height": float(results.bboxes[i][3] - results.bboxes[i][1])
+            },
+            "gaze": {
+                "pitch_rad": float(results.pitch[i]),
+                "yaw_rad": float(results.yaw[i]),
+                "pitch_deg": float(results.pitch[i] * 180 / 3.14159),
+                "yaw_deg": float(results.yaw[i] * 180 / 3.14159),
+                "vector": {
+                    "x": float(-np.cos(results.pitch[i]) * np.sin(results.yaw[i])),
+                    "y": float(-np.sin(results.pitch[i])),
+                    "z": float(-np.cos(results.pitch[i]) * np.cos(results.yaw[i]))
+                }
+            },
+            "confidence": float(results.scores[i]) if len(results.scores) > i else None
+        }
+        print(json.dumps(gaze_data), flush=True)
 
 def parse_args():
     """Parse input arguments."""
@@ -31,6 +62,12 @@ def parse_args():
     parser.add_argument(
         '--arch',dest='arch',help='Network architecture, can be: ResNet18, ResNet34, ResNet50, ResNet101, ResNet152',
         default='ResNet50', type=str)
+    parser.add_argument(
+        '--output-json',dest='output_json',help='Enable NDJSON console output',
+        action='store_true')
+    parser.add_argument(
+        '--websocket',dest='websocket',help='Enable WebSocket server on specified port',
+        type=int, default=None)
 
     args = parser.parse_args()
     return args
@@ -41,7 +78,12 @@ if __name__ == '__main__':
     cudnn.enabled = True
     arch=args.arch
     cam = args.cam_id
-    # snapshot_path = args.snapshot
+
+    # Initialize WebSocket server if requested
+    websocket_server = None
+    if args.websocket:
+        websocket_server = GazeWebSocketServer(args.websocket)
+        websocket_server.start_server()
 
     gaze_GazePipeline = GazePipeline(
         weights=CWD / 'models' / 'Gaze_Tracker.pkl',
@@ -58,20 +100,52 @@ if __name__ == '__main__':
         while True:
 
             # Get frame
-            success, frame = cap.read()    
-            start_fps = time.time()  
+            success, frame = cap.read()
+            start_fps = time.time()
 
             if not success:
-                print("Failed to obtain frame")
+                print("Failed to obtain frame", file=sys.stderr if args.output_json else sys.stdout)
                 time.sleep(0.1)
+                continue
 
             # Process frame
             results = gaze_GazePipeline.step(frame)
 
-            # Visualize output
-            frame = render(frame, results)
-           
             myFPS = 1.0 / (time.time() - start_fps)
+
+            # Output JSON if requested
+            if args.output_json and len(results.pitch) > 0:
+                output_gaze_json(results, time.time(), myFPS)
+
+            # Send to WebSocket clients if server is running
+            if websocket_server and len(results.pitch) > 0:
+                gaze_data = {
+                    "timestamp": time.time(),
+                    "fps": myFPS,
+                    "face_id": 0,
+                    "bbox": {
+                        "x": float(results.bboxes[0][0]),
+                        "y": float(results.bboxes[0][1]),
+                        "width": float(results.bboxes[0][2] - results.bboxes[0][0]),
+                        "height": float(results.bboxes[0][3] - results.bboxes[0][1])
+                    },
+                    "gaze": {
+                        "pitch_rad": float(results.pitch[0]),
+                        "yaw_rad": float(results.yaw[0]),
+                        "pitch_deg": float(results.pitch[0] * 180 / np.pi),
+                        "yaw_deg": float(results.yaw[0] * 180 / np.pi),
+                        "vector": {
+                            "x": float(-np.cos(results.pitch[0]) * np.sin(results.yaw[0])),
+                            "y": float(-np.sin(results.pitch[0])),
+                            "z": float(-np.cos(results.pitch[0]) * np.cos(results.yaw[0]))
+                        }
+                    },
+                    "confidence": float(results.scores[0]) if len(results.scores) > 0 else None
+                }
+                websocket_server.broadcast_gaze_data(gaze_data)
+
+            # Visualize output (debug overlay)
+            frame = render(frame, results)
             cv2.putText(frame, 'FPS: {:.1f}'.format(myFPS), (10, 20),cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, (0, 255, 0), 1, cv2.LINE_AA)
 
             cv2.imshow("Demo",frame)

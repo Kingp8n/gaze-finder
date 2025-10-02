@@ -3,6 +3,7 @@ from .visualize import draw_gaze, render, save_gaze_plot
 from .model import GazeTracker
 from .pipeline import GazePipeline
 from .datasets import Gaze360, Mpiigaze
+from .websocket_server import GazeWebSocketServer
 
 __all__ = [
     'GazeTracker',
@@ -16,5 +17,6 @@ __all__ = [
     'natural_keys',
     'gazeto3d',
     'angular',
-    'getArch'
+    'getArch',
+    'GazeWebSocketServer'
 ]
