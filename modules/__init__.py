@@ -5,6 +5,8 @@ from .pipeline import GazePipeline
 from .datasets import Gaze360, Mpiigaze
 from .websocket_server import GazeWebSocketServer
 from .face_pose import FacePoseDetector
+from .smoothing import TemporalSmoother
+from .calibration import FivePointCalibration
 
 __all__ = [
     'GazeTracker',
@@ -20,5 +22,7 @@ __all__ = [
     'angular',
     'getArch',
     'GazeWebSocketServer',
-    'FacePoseDetector'
+    'FacePoseDetector',
+    'TemporalSmoother',
+    'FivePointCalibration'
 ]
