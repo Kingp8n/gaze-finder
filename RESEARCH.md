@@ -60,3 +60,6 @@ Input (448×448×3) → ResNet Backbone → Global Average Pool → FC Layers
 - [MPIIFaceGaze Dataset](https://www.mpi-inf.mpg.de/departments/computer-vision-and-machine-learning/research/gaze-based-human-computer-interaction/its-written-all-over-your-face-full-face-appearance-based-gaze-estimation)
 - [Gaze Estimation Survey](https://arxiv.org/abs/2104.12668)
 - [Data Processing Pipeline](https://phi-ai.buaa.edu.cn/Gazehub/rectification/)
+- [Gaze360 Dataset](https://gaze360.csail.mit.edu/)
+- [Gaze360  Dataset (Huggingface)](https://huggingface.co/datasets/Morning5/Gaze360)
+- [Face Detection](https://github.com/elliottzheng/face-detection)
